@@ -5,3 +5,7 @@ jupyter
 notebook
 Sphinx
 flake8
+bs4
+pandas
+numpy
+pillow
