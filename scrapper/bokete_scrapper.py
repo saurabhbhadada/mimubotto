@@ -29,10 +29,10 @@ data = pd.DataFrame(columns=['img_name', 'caption', 'score'])
 data_row_count = 0
 
 def parse_params(param_string):
+    logger.info(param_string)
     param_string = param_string[param_string.find('(')+1: param_string.find(')')]
-    param_string = param_string.strip().strip('{').strip('}').replace(':','=').replace(',','\n')
-    exec(param_string)
-    return [max_id, category, op, rate]
+    sch= re.search("{max_id:(.*),category:(.*),op:(.*),rate:(.*)}", param_string)
+    return [sch.group(i) for i in range(1,5)]
 
 
 def scrape(response):
@@ -51,7 +51,13 @@ def scrape(response):
         time.sleep(1)
         url_ = base_url+image_page
         logger.info('get request : {}'.format(url_))
-        image_page_response = requests.get(url_, timeout=5)
+        try:
+            image_page_response = requests.get(url_, timeout=10)
+        except:
+            logger.info('timed out{} skipping'.format(url_))
+            continue
+        if response.status_code != 200:
+            continue
         soup_img_page = BeautifulSoup(image_page_response.text, 'html.parser')
         img_page_boke_divs = soup_img_page.findAll('div', {'class': 'boke'})
         img_page_boke_divs.pop(0)
@@ -78,7 +84,7 @@ def scrape_static():
                     scrape(response)
                     break
 
-def scrape_dynamic(start_page_url):
+def scrape_dynamic():
     for bokete_page in bokete_dynamic_pages:
         time.sleep(3)
         while True:
@@ -94,7 +100,7 @@ def scrape_dynamic(start_page_url):
         while True:
             time.sleep(3)
             while True:
-                url_ = base_url+'/'+bokete_page+'/panel?category='+ category +'&max_id=' + str(max_id) +'&op='+op+'&rate='+str(rate)
+                url_ = base_url+'/'+bokete_page+'/panel?category='+ category +'&max_id=' + max_id +'&op='+op+'&rate='+rate
                 logger.info('get request: {}'.format(url_))
                 response = requests.get(url_, timeout=5)
                 if response.status_code == 200:
@@ -107,8 +113,7 @@ def scrape_dynamic(start_page_url):
 
 
 if __name__ == "__main__":
-
     logger.info('initiating scrapping from static pages')
     scrape_static()
-    logger.info('initiating scrapping from static pages')
+    logger.info('initiating scrapping from dynamic pages')
     scrape_dynamic()
